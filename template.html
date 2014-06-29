@@ -1,0 +1,47 @@
+<div id="mapdiv"></div>
+<script src="http://www.openlayers.org/api/OpenLayers.js"></script>
+<script>
+    map = new OpenLayers.Map("mapdiv");
+    map.addLayer(new OpenLayers.Layer.OSM());
+    var markers = new OpenLayers.Layer.Markers( "Markers" );
+    // add a marker for each item in the csv
+    % for item in coords:
+        var lonLat = new OpenLayers.LonLat(
+            {{ item[0] }}, {{ item[1] }}
+        ).transform(
+            new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
+            map.getProjectionObject() // to Spherical Mercator Projection
+        );
+        var icon = new OpenLayers.Icon("{{ item[2] }}");
+        markers.addMarker(new OpenLayers.Marker(lonLat, icon));
+    % end
+    map.addLayer(markers)
+    // center on britain the attempt to geolocate user
+    var center = new OpenLayers.LonLat(-1.4993, 53.6392).transform(
+        new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
+        map.getProjectionObject() // to Spherical Mercator Projection
+    );
+    map.setCenter(center, 6);
+    getLocation();
+
+
+    // use html5 to get location
+    function getLocation() {
+        if(navigator.geolocation) {
+            return navigator.geolocation.getCurrentPosition(returnPosition);
+        }
+        else {
+            window.alert("Gelocation not supported");
+        }
+    }
+
+    // if html5 can be used, set a new centre
+    function returnPosition(position) {
+        var lonLat = new OpenLayers.LonLat( position.coords.longitude, position.coords.latitude )
+        .transform(
+            new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
+            map.getProjectionObject() // to Spherical Mercator Projection
+        );
+        map.setCenter(lonLat, 10);
+    }
+</script>
