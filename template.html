@@ -1,21 +1,16 @@
 <div id="mapdiv"></div>
+<script src="icon/jquery-1.11.1.js"></script>
 <script src="http://www.openlayers.org/api/OpenLayers.js"></script>
 <script>
-    map = new OpenLayers.Map("mapdiv");
+    map = new OpenLayers.Map("mapdiv", {
+      projection: new OpenLayers.Projection("EPSG:900913"),
+      displayProjection: new OpenLayers.Projection("EPSG:4326")
+    });
     map.addLayer(new OpenLayers.Layer.OSM());
     var markers = new OpenLayers.Layer.Markers( "Markers" );
-    // add a marker for each item in the csv
-    % for item in coords:
-        var lonLat = new OpenLayers.LonLat(
-            {{ item[0] }}, {{ item[1] }}
-        ).transform(
-            new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
-            map.getProjectionObject() // to Spherical Mercator Projection
-        );
-        var icon = new OpenLayers.Icon("{{ item[2] }}");
-        markers.addMarker(new OpenLayers.Marker(lonLat, icon));
-    % end
-    map.addLayer(markers)
+    var ownmarker = new OpenLayers.Layer.Markers( "Markers" );
+    map.addLayer(markers);
+    map.addLayer(ownmarker);
     // center on britain the attempt to geolocate user
     var center = new OpenLayers.LonLat(-1.4993, 53.6392).transform(
         new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
@@ -23,6 +18,9 @@
     );
     map.setCenter(center, 6);
     getLocation();
+    
+    // set listener to load up markers in a sensible way
+    map.events.register("moveend", map, mapMoved);
 
 
     // use html5 to get location
@@ -42,6 +40,39 @@
             new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
             map.getProjectionObject() // to Spherical Mercator Projection
         );
+        ownmarker.addMarker(new OpenLayers.Marker(lonLat));
         map.setCenter(lonLat, 10);
+    }
+    
+    var xmlhttp;
+    xmlhttp=new XMLHttpRequest();
+
+    xmlhttp.onreadystatechange=function() {
+        if (xmlhttp.readyState==4 && xmlhttp.status==200) {
+            window.markers.clearMarkers();
+            loadMarkers(xmlhttp.responseText);
+        }
+    }
+    var jsondata;
+    function loadMarkers(coords) {
+        jsondata = JSON.parse(coords);
+        //var markers = new OpenLayers.Layer.Markers( "Markers" );
+        for (i = 0; i < jsondata.length; i++) {
+            var lonLat = new OpenLayers.LonLat(
+                jsondata[i][1], jsondata[i][0]
+            ).transform(
+                new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
+                map.getProjectionObject() // to Spherical Mercator Projection
+            );
+            var icon = new OpenLayers.Icon(jsondata[i][2].replace("^\"|\"$", ""));
+            markers.addMarker(new OpenLayers.Marker(lonLat, icon));
+        }
+        
+    }
+    
+    function mapMoved(e) {
+        extent = map.getExtent().transform(map.projection, map.displayProjection);
+        xmlhttp.open("GET","/locations?left="+extent.left+"&bottom="+extent.bottom+"&right="+extent.right+"&top="+extent.top,true);
+        xmlhttp.send();
     }
 </script>
