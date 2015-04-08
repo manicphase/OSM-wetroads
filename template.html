@@ -1,7 +1,9 @@
-<div id="mapdiv"></div>
+<body style="margin:0; border:0;">
+<div id="mapdiv" style="height: 100%; width: 100%; margin: 0; border: 0;"></div>
 <script src="icon/jquery-1.11.1.js"></script>
 <script src="http://www.openlayers.org/api/OpenLayers.js"></script>
 <script>
+    $("#mapdiv").height(screen.height);
     map = new OpenLayers.Map("mapdiv", {
       projection: new OpenLayers.Projection("EPSG:900913"),
       displayProjection: new OpenLayers.Projection("EPSG:4326")
@@ -9,16 +11,23 @@
     map.addLayer(new OpenLayers.Layer.OSM());
     var markers = new OpenLayers.Layer.Markers( "Markers" );
     var ownmarker = new OpenLayers.Layer.Markers( "Markers" );
-    map.addLayer(markers);
-    map.addLayer(ownmarker);
-    // center on britain the attempt to geolocate user
-    var center = new OpenLayers.LonLat(-1.4993, 53.6392).transform(
+
+
+    var icon = new OpenLayers.Icon("icon/location.png");
+    var center = new OpenLayers.LonLat({{ longitude }}, {{ latitude }}).transform(
         new OpenLayers.Projection("EPSG:4326"), // transform from WGS 1984
         map.getProjectionObject() // to Spherical Mercator Projection
     );
-    map.setCenter(center, 6);
+
+    map.setCenter(center, 10);
+    map.addLayer(markers);
+    map.addLayer(ownmarker);
+
+    ownmarker.addMarker(new OpenLayers.Marker(center, icon));
+    // center on britain the attempt to geolocate user
+
     getLocation();
-    
+
     // set listener to load up markers in a sensible way
     map.events.register("moveend", map, mapMoved);
 
@@ -29,7 +38,7 @@
             return navigator.geolocation.getCurrentPosition(returnPosition);
         }
         else {
-            window.alert("Gelocation not supported");
+            //window.alert("Gelocation not supported");
         }
     }
 
@@ -43,7 +52,7 @@
         ownmarker.addMarker(new OpenLayers.Marker(lonLat));
         map.setCenter(lonLat, 10);
     }
-    
+
     var xmlhttp;
     xmlhttp=new XMLHttpRequest();
 
@@ -67,12 +76,16 @@
             var icon = new OpenLayers.Icon(jsondata[i][2].replace("^\"|\"$", ""));
             markers.addMarker(new OpenLayers.Marker(lonLat, icon));
         }
-        
+
     }
-    
+
     function mapMoved(e) {
         extent = map.getExtent().transform(map.projection, map.displayProjection);
         xmlhttp.open("GET","/locations?left="+extent.left+"&bottom="+extent.bottom+"&right="+extent.right+"&top="+extent.top,true);
         xmlhttp.send();
     }
 </script>
+<script>
+
+</script>
+</body>
